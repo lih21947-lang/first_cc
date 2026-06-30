@@ -1,13 +1,13 @@
 <!-- ───────────────────────────────────────────────
-  Pomodoro Timer — "精密计时器" 主题
-  设计：暖色调暗色底 + 精密器械感
+  Pomodoro Timer — 温暖柔和中性配色
+  主色 #C65A4A · 背景 #F7F2EC · 文本 #6F655E
 ─────────────────────────────────────────────── -->
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="theme-color" content="#CC4B3A">
+<meta name="theme-color" content="#C65A4A">
 <title>番茄钟 - Pomodoro Timer</title>
 <link rel="manifest" href="manifest.json">
 <style>
@@ -17,75 +17,83 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  /* Background */
-  --bg: #1C1917;
-  --bg-surface: #262320;
+  /* Palette: warm soft neutrals — light mode */
+  --bg:             #F7F2EC;
+  --bg-surface:     #F1E8E0;
+  --card-bg:        rgba(255,255,255,0.72);
+  --card-border:    #E5E0DA;
+  --card-highlight: rgba(255,255,255,0.8);
 
-  /* Card */
-  --card-bg: rgba(38,35,32,0.75);
-  --card-border: rgba(255,255,255,0.06);
-  --card-highlight: rgba(255,255,255,0.04);
+  /* Work — 主色 */
+  --work:       #C65A4A;
+  --work-dim:   rgba(198,90,74,0.22);
+  --work-glow:  rgba(198,90,74,0.10);
+  --work-soft:  #F8DCCF;
 
-  /* Work / Focus */
-  --work: #CC4B3A;
-  --work-dim: rgba(204,75,58,0.30);
-  --work-glow: rgba(204,75,58,0.18);
+  /* Break — 温润鼠尾绿 */
+  --break:       #7DA092;
+  --break-dim:   rgba(125,160,146,0.25);
+  --break-glow:  rgba(125,160,146,0.12);
 
-  /* Break — sage green, not bright */
-  --break: #5D9B7A;
-  --break-dim: rgba(93,155,122,0.30);
-  --break-glow: rgba(93,155,122,0.18);
-
-  /* Pause */
-  --pause: #D4A853;
-  --pause-dim: rgba(212,168,83,0.35);
+  /* Pause — 暖琥珀 */
+  --pause:       #C49860;
+  --pause-dim:   rgba(196,152,96,0.30);
 
   /* Text */
-  --text: #E8E0D5;
-  --text-muted: #9E968A;
-  --text-dim: #6B6560;
+  --text:       #6F655E;
+  --text-muted: #A09790;
+  --text-dim:   #C5BDB7;
 
   /* Ring */
-  --ring-track: rgba(255,255,255,0.05);
-  --ring-idle: rgba(255,255,255,0.12);
+  --ring-track: rgba(0,0,0,0.06);
+  --ring-idle:  rgba(0,0,0,0.10);
 
   /* Settings */
-  --settings-bg: rgba(0,0,0,0.30);
-  --row-bg: rgba(255,255,255,0.03);
-  --input-bg: rgba(255,255,255,0.06);
-  --input-border: rgba(255,255,255,0.10);
+  --settings-bg: rgba(0,0,0,0.03);
+  --row-bg:      #F1E8E0;
+  --input-bg:    #EAE3DB;
+  --input-border:#E5E0DA;
 
-  /* Shadows */
-  --shadow-card: 0 1px 2px rgba(0,0,0,0.3), 0 8px 40px rgba(0,0,0,0.5);
+  /* Shadows — soft for light mode */
+  --shadow-card: 0 1px 4px rgba(0,0,0,0.04), 0 8px 40px rgba(0,0,0,0.08);
 
-  /* Type */
+  /* Type & layout */
   --font-mono: 'JetBrains Mono', 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
   --ring-size: min(280px, 62vw);
-
-  /* Transition */
   --ease: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Light mode */
-@media (prefers-color-scheme: light) {
+/* Dark mode */
+@media (prefers-color-scheme: dark) {
   :root {
-    --bg: #F2EFE9;
-    --bg-surface: #E8E4DD;
-    --card-bg: rgba(255,255,255,0.75);
-    --card-border: rgba(0,0,0,0.08);
-    --card-highlight: rgba(255,255,255,0.6);
-    --text: #2C2416;
-    --text-muted: #7A7265;
-    --text-dim: #ADA598;
-    --ring-track: rgba(0,0,0,0.05);
-    --ring-idle: rgba(0,0,0,0.10);
-    --settings-bg: rgba(0,0,0,0.04);
-    --row-bg: rgba(0,0,0,0.03);
-    --input-bg: rgba(0,0,0,0.04);
-    --input-border: rgba(0,0,0,0.12);
-    --shadow-card: 0 1px 2px rgba(0,0,0,0.06), 0 8px 40px rgba(0,0,0,0.10);
-    --work-dim: rgba(204,75,58,0.15);
-    --break-dim: rgba(93,155,122,0.15);
+    --bg:             #2A2522;
+    --bg-surface:     #332E2B;
+    --card-bg:        rgba(51,46,43,0.78);
+    --card-border:    rgba(255,255,255,0.06);
+    --card-highlight: rgba(255,255,255,0.05);
+
+    --work-dim:   rgba(198,90,74,0.28);
+    --work-glow:  rgba(198,90,74,0.16);
+    --work-soft:  rgba(248,220,207,0.15);
+
+    --break-dim:   rgba(125,160,146,0.22);
+    --break-glow:  rgba(125,160,146,0.12);
+
+    --pause-dim:   rgba(196,152,96,0.28);
+
+    --text:       #EDE7E0;
+    --text-muted: #A89F99;
+    --text-dim:   #7A7370;
+
+    --ring-track: rgba(255,255,255,0.06);
+    --ring-idle:  rgba(255,255,255,0.12);
+
+    --settings-bg: rgba(0,0,0,0.28);
+    --row-bg:      rgba(255,255,255,0.03);
+    --input-bg:    rgba(255,255,255,0.06);
+    --input-border:rgba(255,255,255,0.08);
+
+    --shadow-card: 0 1px 2px rgba(0,0,0,0.3), 0 8px 40px rgba(0,0,0,0.4);
   }
 }
 
@@ -108,13 +116,13 @@ body {
 }
 
 /* ============================================================
-   Ambient Orbs — subtle, behind the card
+   Ambient Orbs
    ============================================================ */
 .bg-orb {
   position: fixed;
   border-radius: 50%;
   filter: blur(120px);
-  opacity: 0.06;
+  opacity: 0.08;
   pointer-events: none;
   z-index: 0;
   transition: opacity 1s ease, transform 2s ease;
@@ -146,7 +154,7 @@ body {
 }
 
 /* ============================================================
-   Card — understated glass
+   Card — soft glass
    ============================================================ */
 .card {
   background: var(--card-bg);
@@ -161,7 +169,6 @@ body {
   flex-direction: column;
   align-items: center;
   gap: 0;
-  transition: border-color 0.5s ease;
 }
 
 /* ============================================================
@@ -177,7 +184,7 @@ body {
 }
 
 /* ============================================================
-   Timer Ring — the hero element
+   Timer Ring
    ============================================================ */
 .timer-ring-container {
   position: relative;
@@ -213,7 +220,7 @@ body {
 }
 
 /* ============================================================
-   Time Display — large, thin, precise
+   Time Display
    ============================================================ */
 .time-display-area {
   position: absolute;
@@ -228,7 +235,7 @@ body {
 .time-text {
   font-family: var(--font-mono);
   font-size: clamp(48px, 14vw, 72px);
-  font-weight: 250;
+  font-weight: 280;
   color: var(--text);
   letter-spacing: 4px;
   line-height: 1;
@@ -243,11 +250,10 @@ body {
   letter-spacing: 2.5px;
   margin-top: 12px;
   text-transform: uppercase;
-  transition: color 0.5s ease;
 }
 
 /* ============================================================
-   Controls — understated pills
+   Controls
    ============================================================ */
 .controls {
   display: flex;
@@ -277,41 +283,33 @@ body {
   box-shadow: 0 2px 12px var(--work-dim);
 }
 .btn--start:hover {
-  box-shadow: 0 4px 20px var(--work-dim);
+  box-shadow: 0 6px 22px var(--work-dim);
   transform: translateY(-1px);
-}
-.btn--start:active {
-  box-shadow: 0 1px 6px var(--work-dim);
-  transform: scale(0.96);
 }
 
 .btn--pause {
   background: var(--pause);
-  color: #1C1917;
+  color: #fff;
   min-width: 110px;
   box-shadow: 0 2px 12px var(--pause-dim);
 }
 .btn--pause:hover {
-  box-shadow: 0 4px 20px var(--pause-dim);
+  box-shadow: 0 6px 22px var(--pause-dim);
   transform: translateY(-1px);
-}
-.btn--pause:active {
-  box-shadow: 0 1px 6px var(--pause-dim);
 }
 
 .btn--reset {
   background: transparent;
   color: var(--text-muted);
-  border: 1px solid rgba(255,255,255,0.08);
+  border: 1px solid var(--card-border);
 }
 .btn--reset:hover {
   color: var(--text);
-  border-color: rgba(255,255,255,0.18);
-  background: rgba(255,255,255,0.03);
+  background: var(--row-bg);
 }
 
 /* ============================================================
-   Session Info — small pill
+   Session Info
    ============================================================ */
 .session-info {
   display: flex;
@@ -327,11 +325,10 @@ body {
 }
 
 .session-dot {
-  width: 7px;
-  height: 7px;
+  width: 7px; height: 7px;
   border-radius: 50%;
   background: var(--work);
-  box-shadow: 0 0 6px var(--work-glow);
+  box-shadow: 0 0 6px var(--work-dim);
 }
 .session-count {
   font-weight: 600;
@@ -343,7 +340,7 @@ body {
    ============================================================ */
 .settings-toggle {
   background: var(--row-bg);
-  border: 1px solid rgba(255,255,255,0.06);
+  border: 1px solid var(--card-border);
   color: var(--text-muted);
   font-size: 12px;
   cursor: pointer;
@@ -358,13 +355,12 @@ body {
 }
 .settings-toggle:hover {
   color: var(--text);
-  border-color: rgba(255,255,255,0.15);
+  border-color: var(--text-dim);
 }
 .settings-toggle svg {
-  width: 14px;
-  height: 14px;
+  width: 14px; height: 14px;
   transition: transform 0.35s var(--ease);
-  opacity: 0.5;
+  opacity: 0.45;
 }
 .settings-toggle.is-open svg {
   transform: rotate(180deg);
@@ -458,9 +454,8 @@ body {
 
 .toggle-switch {
   position: relative;
-  width: 42px;
-  height: 24px;
-  background: rgba(255,255,255,0.10);
+  width: 42px; height: 24px;
+  background: var(--input-border);
   border-radius: 24px;
   transition: background 0.3s var(--ease), box-shadow 0.3s var(--ease);
   flex-shrink: 0;
@@ -468,18 +463,16 @@ body {
 .toggle-switch::after {
   content: '';
   position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 20px;
-  height: 20px;
+  top: 2px; left: 2px;
+  width: 20px; height: 20px;
   background: #fff;
   border-radius: 50%;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
   transition: transform 0.3s var(--ease);
 }
 .toggle-row.is-on .toggle-switch {
   background: var(--work);
-  box-shadow: 0 0 10px var(--work-glow);
+  box-shadow: 0 0 10px var(--work-dim);
 }
 .toggle-row.is-on .toggle-switch::after {
   transform: translateX(18px);
@@ -501,7 +494,7 @@ body {
 }
 .kbd-hint kbd {
   background: var(--input-bg);
-  border: 1px solid rgba(255,255,255,0.10);
+  border: 1px solid var(--input-border);
   border-radius: 5px;
   padding: 2px 7px;
   font-family: var(--font-mono);
@@ -513,7 +506,7 @@ body {
    ============================================================ */
 @keyframes pulse-ring {
   0%   { filter: drop-shadow(0 0 6px var(--work-glow)); }
-  50%  { filter: drop-shadow(0 0 18px var(--work-dim)); }
+  50%  { filter: drop-shadow(0 0 20px var(--work-dim)); }
   100% { filter: drop-shadow(0 0 6px var(--work-glow)); }
 }
 .ring-progress.is-finished {
@@ -718,15 +711,15 @@ function updateAmbient() {
 
   if (isRunning) {
     if (isBreak) {
-      $orbBreak.style.opacity = String(0.04 + fraction * 0.08);
-      $orbWork.style.opacity = '0.03';
+      $orbBreak.style.opacity = String(0.06 + fraction * 0.10);
+      $orbWork.style.opacity = '0.04';
     } else {
-      $orbWork.style.opacity = String(0.04 + fraction * 0.08);
-      $orbBreak.style.opacity = '0.03';
+      $orbWork.style.opacity = String(0.06 + fraction * 0.10);
+      $orbBreak.style.opacity = '0.04';
     }
   } else {
-    $orbWork.style.opacity = '0.04';
-    $orbBreak.style.opacity = '0.04';
+    $orbWork.style.opacity = '0.06';
+    $orbBreak.style.opacity = '0.06';
   }
 }
 

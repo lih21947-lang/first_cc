@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "color-palette-extractor": {
+      "source": "git@github.com:onewave-ai/claude-skills.git",
+      "sourceType": "git",
+      "skillPath": "color-palette-extractor/SKILL.md",
+      "computedHash": "0e50bd526dcd4a90e5202b10ca23231c2eec6db1fb7192280afa9e3e749eab3e"
+    }
+  }
+}
