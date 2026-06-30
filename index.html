@@ -1,0 +1,966 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#e74c3c">
+<title>番茄钟 - Pomodoro Timer</title>
+<link rel="manifest" href="manifest.json">
+<style>
+/* ===== Reset & Base ===== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg-start: #0f0c29;
+  --bg-mid: #1a1a3e;
+  --bg-end: #24243e;
+  --card-bg: rgba(255,255,255,0.07);
+  --card-border: rgba(255,255,255,0.12);
+  --text-primary: #f0f0f0;
+  --text-secondary: #b0b0c0;
+  --work-color: #e74c3c;
+  --work-glow: rgba(231,76,60,0.4);
+  --break-color: #2ecc71;
+  --break-glow: rgba(46,204,113,0.4);
+  --btn-start-bg: rgba(231,76,60,0.2);
+  --btn-start-border: rgba(231,76,60,0.5);
+  --btn-pause-bg: rgba(241,196,15,0.2);
+  --btn-pause-border: rgba(241,196,15,0.5);
+  --btn-reset-bg: rgba(255,255,255,0.06);
+  --btn-reset-border: rgba(255,255,255,0.15);
+  --ring-bg: rgba(255,255,255,0.08);
+  --settings-bg: rgba(255,255,255,0.04);
+  --input-bg: rgba(255,255,255,0.08);
+  --input-border: rgba(255,255,255,0.15);
+  --shadow-lg: 0 25px 60px rgba(0,0,0,0.5);
+  --shadow-card: 0 8px 32px rgba(0,0,0,0.3);
+  --font-mono: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg-start: #e8ecf1;
+    --bg-mid: #dce2e8;
+    --bg-end: #cfd7de;
+    --card-bg: rgba(255,255,255,0.65);
+    --card-border: rgba(0,0,0,0.12);
+    --text-primary: #1a1a2e;
+    --text-secondary: #5a5a7a;
+    --ring-bg: rgba(0,0,0,0.06);
+    --settings-bg: rgba(0,0,0,0.03);
+    --input-bg: rgba(0,0,0,0.05);
+    --input-border: rgba(0,0,0,0.15);
+    --btn-reset-bg: rgba(0,0,0,0.05);
+    --btn-reset-border: rgba(0,0,0,0.15);
+    --shadow-lg: 0 25px 60px rgba(0,0,0,0.15);
+    --shadow-card: 0 8px 32px rgba(0,0,0,0.1);
+  }
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  background: linear-gradient(135deg, var(--bg-start), var(--bg-mid), var(--bg-end));
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* ===== Animated Background ===== */
+.bg-orb {
+  position: fixed;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.15;
+  pointer-events: none;
+  z-index: 0;
+}
+.bg-orb--1 {
+  width: 300px; height: 300px;
+  background: var(--work-color);
+  top: -80px; right: -80px;
+  animation: float1 12s ease-in-out infinite;
+}
+.bg-orb--2 {
+  width: 250px; height: 250px;
+  background: #3498db;
+  bottom: -60px; left: -60px;
+  animation: float2 15s ease-in-out infinite;
+}
+.bg-orb--3 {
+  width: 200px; height: 200px;
+  background: var(--break-color);
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  animation: float3 18s ease-in-out infinite;
+}
+@keyframes float1 {
+  0%, 100% { transform: translate(0,0) scale(1); }
+  33% { transform: translate(-40px,30px) scale(1.1); }
+  66% { transform: translate(20px,-20px) scale(0.9); }
+}
+@keyframes float2 {
+  0%, 100% { transform: translate(0,0) scale(1); }
+  33% { transform: translate(30px,-20px) scale(1.15); }
+  66% { transform: translate(-20px,20px) scale(0.85); }
+}
+@keyframes float3 {
+  0%, 100% { transform: translate(-50%,-50%) scale(1); }
+  50% { transform: translate(-50%,-50%) scale(1.2); }
+}
+
+/* ===== Main Card ===== */
+.app-container {
+  position: relative;
+  z-index: 1;
+  width: 420px;
+  min-height: 620px;
+}
+
+.card {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 28px;
+  padding: 40px 36px 32px;
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+}
+
+/* ===== Header ===== */
+.app-title {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  color: var(--text-secondary);
+  margin-bottom: 24px;
+}
+
+/* ===== Timer Ring ===== */
+.timer-ring-container {
+  position: relative;
+  width: 260px;
+  height: 260px;
+  margin-bottom: 20px;
+}
+
+.timer-ring {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.ring-bg {
+  fill: none;
+  stroke: var(--ring-bg);
+  stroke-width: 8;
+}
+
+.ring-progress {
+  fill: none;
+  stroke: var(--work-color);
+  stroke-width: 8;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.3s cubic-bezier(0.4, 0, 0.2, 1), stroke 0.5s ease;
+  filter: drop-shadow(0 0 8px var(--work-glow));
+}
+
+.ring-progress.is-break {
+  stroke: var(--break-color);
+  filter: drop-shadow(0 0 8px var(--break-glow));
+}
+
+/* ===== Time Display ===== */
+.time-display-area {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.time-text {
+  font-family: var(--font-mono);
+  font-size: 56px;
+  font-weight: 300;
+  color: var(--text-primary);
+  letter-spacing: 2px;
+  line-height: 1;
+  transition: color 0.3s ease;
+}
+
+.phase-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  letter-spacing: 1.5px;
+  margin-top: 8px;
+  transition: color 0.3s ease;
+}
+
+/* ===== Controls ===== */
+.controls {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.btn {
+  border: 1px solid transparent;
+  border-radius: 50px;
+  padding: 10px 24px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  letter-spacing: 0.5px;
+  outline: none;
+  font-family: inherit;
+  position: relative;
+}
+
+.btn:active {
+  transform: scale(0.96);
+}
+
+.btn--start {
+  background: var(--work-color);
+  color: #fff;
+  border-color: var(--work-color);
+  box-shadow: 0 4px 15px var(--work-glow);
+  min-width: 100px;
+}
+.btn--start:hover {
+  box-shadow: 0 6px 22px var(--work-glow);
+  transform: translateY(-1px);
+}
+.btn--start:active {
+  box-shadow: 0 2px 8px var(--work-glow);
+}
+
+.btn--pause {
+  background: #f1c40f;
+  color: #1a1a2e;
+  border-color: #f1c40f;
+  box-shadow: 0 4px 15px rgba(241,196,15,0.35);
+  min-width: 100px;
+}
+.btn--pause:hover {
+  box-shadow: 0 6px 22px rgba(241,196,15,0.45);
+  transform: translateY(-1px);
+}
+
+.btn--reset {
+  background: var(--btn-reset-bg);
+  color: var(--text-primary);
+  border-color: var(--btn-reset-border);
+}
+.btn--reset:hover {
+  background: rgba(255,255,255,0.1);
+  border-color: rgba(255,255,255,0.25);
+}
+
+/* ===== Session Info ===== */
+.session-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 20px;
+}
+
+.session-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--work-color);
+  display: inline-block;
+}
+.session-count {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* ===== Settings Panel ===== */
+.settings-toggle {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 13px;
+  cursor: pointer;
+  font-family: inherit;
+  letter-spacing: 0.5px;
+  padding: 6px 12px;
+  border-radius: 20px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.settings-toggle:hover {
+  color: var(--text-primary);
+  background: var(--settings-bg);
+}
+.settings-toggle svg {
+  width: 14px;
+  height: 14px;
+  transition: transform 0.3s ease;
+}
+.settings-toggle.is-open svg {
+  transform: rotate(180deg);
+}
+
+.settings-panel {
+  width: 100%;
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.35s ease, margin-top 0.35s ease, opacity 0.25s ease;
+  opacity: 0;
+  background: var(--settings-bg);
+  border-radius: 16px;
+  margin-top: 0;
+}
+.settings-panel.is-open {
+  max-height: 260px;
+  margin-top: 16px;
+  opacity: 1;
+}
+
+.settings-inner {
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.setting-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.setting-input-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.setting-input {
+  width: 52px;
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-family: var(--font-mono);
+  text-align: center;
+  padding: 6px 4px;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+.setting-input:focus {
+  border-color: var(--work-color);
+}
+
+.setting-unit {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.setting-row--toggles {
+  gap: 16px;
+  justify-content: flex-start;
+}
+
+.toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.toggle-switch {
+  position: relative;
+  width: 36px;
+  height: 20px;
+  background: rgba(255,255,255,0.15);
+  border-radius: 20px;
+  transition: background 0.25s ease;
+}
+.toggle-switch::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  background: #fff;
+  border-radius: 50%;
+  transition: transform 0.25s ease;
+}
+.toggle-row.is-on .toggle-switch {
+  background: var(--work-color);
+}
+.toggle-row.is-on .toggle-switch::after {
+  transform: translateX(16px);
+}
+
+.toggle-label {
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+/* ===== Keyboard Hint ===== */
+.kbd-hint {
+  margin-top: 12px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  opacity: 0.6;
+}
+.kbd-hint kbd {
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+}
+
+/* ===== Pulse Animation ===== */
+@keyframes pulse-ring {
+  0% { filter: drop-shadow(0 0 8px var(--work-glow)); }
+  50% { filter: drop-shadow(0 0 24px var(--work-glow)); }
+  100% { filter: drop-shadow(0 0 8px var(--work-glow)); }
+}
+.ring-progress.is-finished {
+  animation: pulse-ring 0.8s ease-in-out infinite;
+}
+</style>
+</head>
+<body>
+
+<!-- Background orbs -->
+<div class="bg-orb bg-orb--1"></div>
+<div class="bg-orb bg-orb--2"></div>
+<div class="bg-orb bg-orb--3"></div>
+
+<!-- Main App -->
+<div class="app-container">
+  <div class="card">
+    <div class="app-title">🍅 番茄钟</div>
+
+    <!-- Timer Ring -->
+    <div class="timer-ring-container" id="timerContainer">
+      <svg class="timer-ring" viewBox="0 0 260 260" id="timerSvg">
+        <circle class="ring-bg" cx="130" cy="130" r="118"></circle>
+        <circle class="ring-progress" id="ringProgress" cx="130" cy="130" r="118"
+          stroke-dasharray="741.4" stroke-dashoffset="0"></circle>
+      </svg>
+      <div class="time-display-area">
+        <span class="time-text" id="timeDisplay">25:00</span>
+        <span class="phase-label" id="phaseLabel">准备开始</span>
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="controls">
+      <button class="btn btn--start" id="btnStart" title="开始 (空格键)">▶ 开始</button>
+      <button class="btn btn--start" id="btnPause" title="暂停 (空格键)" style="display:none;">⏸ 暂停</button>
+      <button class="btn btn--reset" id="btnReset">↺ 重置</button>
+    </div>
+
+    <!-- Session Info -->
+    <div class="session-info">
+      <span>今日完成</span>
+      <span class="session-dot"></span>
+      <span class="session-count" id="sessionCount">0</span>
+      <span>个番茄</span>
+    </div>
+
+    <!-- Settings Toggle -->
+    <button class="settings-toggle" id="settingsToggle">
+      设置 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+    </button>
+
+    <!-- Settings Panel -->
+    <div class="settings-panel" id="settingsPanel">
+      <div class="settings-inner">
+        <div class="setting-row">
+          <span class="setting-label">🍅 专注时长（分钟）</span>
+          <div class="setting-input-group">
+            <input class="setting-input" type="number" id="inputWork" min="1" max="120" value="25">
+            <span class="setting-unit">分钟</span>
+          </div>
+        </div>
+        <div class="setting-row">
+          <span class="setting-label">☕ 休息时长（分钟）</span>
+          <div class="setting-input-group">
+            <input class="setting-input" type="number" id="inputBreak" min="1" max="60" value="5">
+            <span class="setting-unit">分钟</span>
+          </div>
+        </div>
+        <div class="setting-row setting-row--toggles">
+          <div class="toggle-row is-on" id="toggleSound" role="switch" aria-checked="true" tabindex="0">
+            <div class="toggle-switch"></div>
+            <span class="toggle-label">🔔 提示音</span>
+          </div>
+          <div class="toggle-row is-on" id="toggleNotify" role="switch" aria-checked="true" tabindex="0">
+            <div class="toggle-switch"></div>
+            <span class="toggle-label">💬 桌面通知</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Keyboard Hint -->
+    <div class="kbd-hint">
+      按 <kbd>空格</kbd> 开始 / 暂停
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// Pomodoro Timer - Complete Application
+// ============================================================
+
+// ---- DOM Elements ----
+const $timeDisplay  = document.getElementById('timeDisplay');
+const $phaseLabel   = document.getElementById('phaseLabel');
+const $ringProgress = document.getElementById('ringProgress');
+const $btnStart     = document.getElementById('btnStart');
+const $btnPause     = document.getElementById('btnPause');
+const $btnReset     = document.getElementById('btnReset');
+const $sessionCount = document.getElementById('sessionCount');
+const $settingsToggle = document.getElementById('settingsToggle');
+const $settingsPanel  = document.getElementById('settingsPanel');
+const $inputWork   = document.getElementById('inputWork');
+const $inputBreak  = document.getElementById('inputBreak');
+const $toggleSound  = document.getElementById('toggleSound');
+const $toggleNotify = document.getElementById('toggleNotify');
+
+// ---- Constants ----
+const RING_RADIUS = 118;
+const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
+
+// ---- State ----
+const STATE = { IDLE: 'idle', WORKING: 'working', PAUSED: 'paused', BREAK: 'break', BREAK_PAUSED: 'break_paused' };
+let currentState = STATE.IDLE;
+
+// ---- Settings (loaded from localStorage) ----
+let settings = {
+  workMinutes: 25,
+  breakMinutes: 5,
+  soundEnabled: true,
+  notifyEnabled: true,
+  todayDate: '',
+  sessionCount: 0,
+};
+
+// ---- Timer State ----
+let totalSeconds = 0;       // total seconds for current phase
+let remainingSeconds = 0;   // seconds left
+let timerInterval = null;
+let lastTickRealTime = null; // for drift correction
+
+// ---- Audio Context (lazy init) ----
+let audioCtx = null;
+
+function getAudioContext() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  return audioCtx;
+}
+
+// ============================================================
+// Persistence
+// ============================================================
+function saveSettings() {
+  localStorage.setItem('pomodoro-settings', JSON.stringify(settings));
+}
+
+function loadSettings() {
+  try {
+    const raw = localStorage.getItem('pomodoro-settings');
+    if (raw) {
+      const saved = JSON.parse(raw);
+      settings = { ...settings, ...saved };
+    }
+  } catch (_) { /* ignore corrupt data */ }
+  // Check if it's a new day
+  const today = new Date().toDateString();
+  if (settings.todayDate !== today) {
+    settings.todayDate = today;
+    settings.sessionCount = 0;
+    saveSettings();
+  }
+}
+
+// ============================================================
+// Audio Engine
+// ============================================================
+function playChime(type = 'work-end') {
+  if (!settings.soundEnabled) return;
+  try {
+    const ctx = getAudioContext();
+    const now = ctx.currentTime;
+    const notes = type === 'work-end'
+      ? [523.25, 659.25, 783.99]  // C5, E5, G5 — bright ascending
+      : [783.99, 659.25, 523.25]; // G5, E5, C5 — descending for break end
+    const baseDuration = 0.18;
+    const gap = 0.08;
+
+    notes.forEach((freq, i) => {
+      const start = now + i * (baseDuration + gap);
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, start);
+      gain.gain.setValueAtTime(0.3, start);
+      gain.gain.exponentialRampToValueAtTime(0.01, start + baseDuration);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(start);
+      osc.stop(start + baseDuration);
+    });
+  } catch (_) { /* audio not available */ }
+}
+
+// ============================================================
+// Notification Engine
+// ============================================================
+function sendNotification(title, body) {
+  if (!settings.notifyEnabled) return;
+  if (!('Notification' in window)) return;
+  if (Notification.permission === 'granted') {
+    new Notification(title, { body, icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">🍅</text></svg>', silent: true });
+  } else if (Notification.permission === 'default') {
+    Notification.requestPermission().then(p => {
+      if (p === 'granted') sendNotification(title, body);
+    });
+  }
+}
+
+// ============================================================
+// UI Renderer
+// ============================================================
+function formatTime(totalSec) {
+  const m = Math.floor(totalSec / 60);
+  const s = totalSec % 60;
+  return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+}
+
+function renderTime() {
+  $timeDisplay.textContent = formatTime(remainingSeconds);
+}
+
+function renderProgress() {
+  const fraction = totalSeconds > 0 ? remainingSeconds / totalSeconds : 1;
+  $ringProgress.style.strokeDashoffset = RING_CIRCUMFERENCE * (1 - fraction);
+}
+
+function renderPhase() {
+  const isBreak = currentState === STATE.BREAK || currentState === STATE.BREAK_PAUSED;
+
+  if (isBreak) {
+    $phaseLabel.textContent = '☕ 休息时间';
+    $ringProgress.classList.add('is-break');
+    $ringProgress.classList.remove('is-finished');
+  } else if (currentState === STATE.WORKING || currentState === STATE.PAUSED) {
+    $phaseLabel.textContent = '🍅 专注时间';
+    $ringProgress.classList.remove('is-break', 'is-finished');
+  } else {
+    $phaseLabel.textContent = '准备开始';
+    $ringProgress.classList.remove('is-break', 'is-finished');
+  }
+}
+
+function renderButtons() {
+  const isRunning = currentState === STATE.WORKING || currentState === STATE.BREAK;
+
+  if (isRunning) {
+    $btnStart.style.display = 'none';
+    $btnPause.style.display = '';
+    $btnPause.textContent = currentState === STATE.BREAK ? '⏸ 暂停休息' : '⏸ 暂停';
+  } else {
+    $btnStart.style.display = '';
+    $btnPause.style.display = 'none';
+    if (currentState === STATE.PAUSED) {
+      $btnStart.textContent = '▶ 继续';
+    } else if (currentState === STATE.BREAK_PAUSED) {
+      $btnStart.textContent = '▶ 继续休息';
+    } else {
+      $btnStart.textContent = '▶ 开始';
+    }
+  }
+}
+
+function renderAll() {
+  renderTime();
+  renderProgress();
+  renderPhase();
+  renderButtons();
+}
+
+// ============================================================
+// Timer Engine
+// ============================================================
+function stopTimer() {
+  if (timerInterval) {
+    clearInterval(timerInterval);
+    timerInterval = null;
+  }
+  lastTickRealTime = null;
+}
+
+function tick() {
+  const nowReal = Date.now();
+
+  // Drift correction: if we missed ticks, catch up
+  if (lastTickRealTime !== null) {
+    const elapsed = Math.round((nowReal - lastTickRealTime) / 1000);
+    if (elapsed > 1) {
+      remainingSeconds = Math.max(0, remainingSeconds - (elapsed - 1));
+    }
+  }
+  lastTickRealTime = nowReal;
+
+  // Normal tick
+  remainingSeconds = Math.max(0, remainingSeconds - 1);
+
+  renderAll();
+
+  // Timer finished
+  if (remainingSeconds <= 0) {
+    handleTimerEnd();
+  }
+}
+
+function startTimer() {
+  stopTimer();
+  lastTickRealTime = Date.now();
+  timerInterval = setInterval(tick, 1000);
+}
+
+function handleTimerEnd() {
+  stopTimer();
+
+  if (currentState === STATE.WORKING) {
+    // Work session complete -> switch to break
+    settings.sessionCount++;
+    saveSettings();
+    $sessionCount.textContent = settings.sessionCount;
+    playChime('work-end');
+    sendNotification('🍅 番茄钟完成！', `太棒了！去休息 ${settings.breakMinutes} 分钟吧~`);
+
+    currentState = STATE.BREAK;
+    totalSeconds = settings.breakMinutes * 60;
+    remainingSeconds = totalSeconds;
+    $ringProgress.classList.add('is-finished');
+    setTimeout(() => $ringProgress.classList.remove('is-finished'), 3000);
+    renderAll();
+    // Auto-start break immediately
+    startTimer();
+
+  } else if (currentState === STATE.BREAK) {
+    // Break complete -> switch to idle
+    playChime('break-end');
+    sendNotification('☕ 休息结束', '准备好开始下一个番茄了吗？');
+
+    currentState = STATE.IDLE;
+    totalSeconds = settings.workMinutes * 60;
+    remainingSeconds = totalSeconds;
+    $ringProgress.classList.add('is-finished');
+    setTimeout(() => $ringProgress.classList.remove('is-finished'), 3000);
+    renderAll();
+  }
+}
+
+// ============================================================
+// Actions
+// ============================================================
+function actionStart() {
+  // Request notification permission on first interaction
+  if (Notification.permission === 'default') {
+    Notification.requestPermission();
+  }
+
+  if (currentState === STATE.IDLE) {
+    currentState = STATE.WORKING;
+    totalSeconds = settings.workMinutes * 60;
+    remainingSeconds = totalSeconds;
+    startTimer();
+
+  } else if (currentState === STATE.PAUSED) {
+    currentState = STATE.WORKING;
+    startTimer();
+
+  } else if (currentState === STATE.BREAK_PAUSED) {
+    currentState = STATE.BREAK;
+    startTimer();
+
+  } else if (currentState === STATE.BREAK) {
+    // Break is running, do nothing (should not happen, button says "continue break")
+    // Actually if idle and user wants to skip to break... no, start does work.
+  }
+
+  renderAll();
+}
+
+function actionPause() {
+  if (currentState === STATE.WORKING) {
+    currentState = STATE.PAUSED;
+  } else if (currentState === STATE.BREAK) {
+    currentState = STATE.BREAK_PAUSED;
+  }
+  stopTimer();
+  renderAll();
+}
+
+function actionReset() {
+  stopTimer();
+  currentState = STATE.IDLE;
+  totalSeconds = settings.workMinutes * 60;
+  remainingSeconds = totalSeconds;
+  renderAll();
+}
+
+function actionToggle() {
+  const running = currentState === STATE.WORKING || currentState === STATE.BREAK;
+  if (running) {
+    actionPause();
+  } else {
+    actionStart();
+  }
+}
+
+// ============================================================
+// Settings UI
+// ============================================================
+function syncUIToSettings() {
+  $inputWork.value = settings.workMinutes;
+  $inputBreak.value = settings.breakMinutes;
+  $sessionCount.textContent = settings.sessionCount;
+
+  $toggleSound.classList.toggle('is-on', settings.soundEnabled);
+  $toggleSound.setAttribute('aria-checked', settings.soundEnabled);
+  $toggleNotify.classList.toggle('is-on', settings.notifyEnabled);
+  $toggleNotify.setAttribute('aria-checked', settings.notifyEnabled);
+}
+
+function applySettingsFromUI() {
+  const newWork = Math.max(1, Math.min(120, parseInt($inputWork.value) || 25));
+  const newBreak = Math.max(1, Math.min(60, parseInt($inputBreak.value) || 5));
+
+  settings.workMinutes = newWork;
+  settings.breakMinutes = newBreak;
+  saveSettings();
+
+  // If idle, update the display immediately
+  if (currentState === STATE.IDLE) {
+    totalSeconds = settings.workMinutes * 60;
+    remainingSeconds = totalSeconds;
+  }
+
+  syncUIToSettings();
+  renderAll();
+}
+
+// ============================================================
+// Event Bindings
+// ============================================================
+$btnStart.addEventListener('click', actionStart);
+$btnPause.addEventListener('click', actionPause);
+$btnReset.addEventListener('click', actionReset);
+
+// Settings toggle
+$settingsToggle.addEventListener('click', () => {
+  const panel = $settingsPanel;
+  const toggle = $settingsToggle;
+  const isOpen = panel.classList.toggle('is-open');
+  toggle.classList.toggle('is-open', isOpen);
+});
+
+// Input changes
+$inputWork.addEventListener('change', applySettingsFromUI);
+$inputBreak.addEventListener('change', applySettingsFromUI);
+$inputWork.addEventListener('blur', applySettingsFromUI);
+$inputBreak.addEventListener('blur', applySettingsFromUI);
+
+// Toggle switches
+function setupToggle(el, settingKey) {
+  el.addEventListener('click', () => {
+    settings[settingKey] = !settings[settingKey];
+    saveSettings();
+    syncUIToSettings();
+  });
+  el.addEventListener('keydown', (e) => {
+    if (e.key === ' ' || e.key === 'Enter') {
+      e.preventDefault();
+      settings[settingKey] = !settings[settingKey];
+      saveSettings();
+      syncUIToSettings();
+    }
+  });
+}
+setupToggle($toggleSound, 'soundEnabled');
+setupToggle($toggleNotify, 'notifyEnabled');
+
+// Keyboard shortcut: Space
+document.addEventListener('keydown', (e) => {
+  if (e.key === ' ' && e.target === document.body) {
+    e.preventDefault();
+    actionToggle();
+  }
+  if (e.key === 'Escape' && e.target === document.body) {
+    actionReset();
+  }
+});
+
+// ============================================================
+// Initialization
+// ============================================================
+function init() {
+  // Sync SVG stroke-dasharray with JS calculated value for precision
+  $ringProgress.setAttribute('stroke-dasharray', RING_CIRCUMFERENCE.toFixed(2));
+
+  loadSettings();
+  syncUIToSettings();
+  currentState = STATE.IDLE;
+  totalSeconds = settings.workMinutes * 60;
+  remainingSeconds = totalSeconds;
+  renderAll();
+}
+
+init();
+
+// Register service worker for PWA (only over HTTP, not file://)
+if ('serviceWorker' in navigator && location.protocol === 'http:') {
+  navigator.serviceWorker.register('./sw.js').catch(() => {
+    // Service worker registration failed — app still works fine
+  });
+}
+
+</script>
+</body>
+</html>

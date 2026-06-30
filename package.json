@@ -1,0 +1,12 @@
+{
+  "name": "pomodoro-timer",
+  "version": "1.0.0",
+  "description": "🍅 桌面番茄钟 - 基于番茄工作法的专注计时器",
+  "private": true,
+  "scripts": {
+    "start": "node server.js",
+    "start:app": "node launcher.js"
+  },
+  "keywords": ["pomodoro", "timer", "productivity"],
+  "license": "MIT"
+}
