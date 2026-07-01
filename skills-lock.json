@@ -6,6 +6,12 @@
       "sourceType": "git",
       "skillPath": "color-palette-extractor/SKILL.md",
       "computedHash": "0e50bd526dcd4a90e5202b10ca23231c2eec6db1fb7192280afa9e3e749eab3e"
+    },
+    "vision": {
+      "source": "kotot/vision",
+      "sourceType": "github",
+      "skillPath": "SKILL.md",
+      "computedHash": "7eae3e02cb73777df302221bd73e7e428f55d94306b2c90570353107bb889ac1"
     }
   }
 }
