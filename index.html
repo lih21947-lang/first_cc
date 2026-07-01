@@ -19,7 +19,6 @@
 :root {
   /* Palette: warm soft neutrals — light mode */
   --bg:             #F7F2EC;
-  --bg-surface:     #F1E8E0;
   --card-bg:        rgba(255,255,255,0.72);
   --card-border:    #E5E0DA;
   --card-highlight: rgba(255,255,255,0.8);
@@ -28,7 +27,6 @@
   --work:       #C65A4A;
   --work-dim:   rgba(198,90,74,0.22);
   --work-glow:  rgba(198,90,74,0.10);
-  --work-soft:  #F8DCCF;
 
   /* Break — 温润鼠尾绿 */
   --break:       #7DA092;
@@ -46,7 +44,6 @@
 
   /* Ring */
   --ring-track: rgba(0,0,0,0.06);
-  --ring-idle:  rgba(0,0,0,0.10);
 
   /* Settings */
   --settings-bg: rgba(0,0,0,0.03);
@@ -67,14 +64,12 @@
 @media (prefers-color-scheme: dark) {
   :root {
     --bg:             #2A2522;
-    --bg-surface:     #332E2B;
     --card-bg:        rgba(51,46,43,0.78);
     --card-border:    rgba(255,255,255,0.06);
     --card-highlight: rgba(255,255,255,0.05);
 
     --work-dim:   rgba(198,90,74,0.28);
     --work-glow:  rgba(198,90,74,0.16);
-    --work-soft:  rgba(248,220,207,0.15);
 
     --break-dim:   rgba(125,160,146,0.22);
     --break-glow:  rgba(125,160,146,0.12);
@@ -86,7 +81,6 @@
     --text-dim:   #7A7370;
 
     --ring-track: rgba(255,255,255,0.06);
-    --ring-idle:  rgba(255,255,255,0.12);
 
     --settings-bg: rgba(0,0,0,0.28);
     --row-bg:      rgba(255,255,255,0.03);
@@ -111,8 +105,7 @@ body {
   overflow-y: auto;
   padding: 24px 0;
   user-select: none;
-  -webkit-user-select: none;
-  transition: background 0.8s ease;
+  transition: background 0.8s var(--ease);
 }
 
 /* ============================================================
@@ -163,7 +156,6 @@ body {
   border-radius: 32px;
   padding: 44px 40px 36px;
   backdrop-filter: blur(32px);
-  -webkit-backdrop-filter: blur(32px);
   box-shadow: var(--shadow-card);
   display: flex;
   flex-direction: column;
@@ -268,7 +260,7 @@ body {
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.25s var(--ease);
+  transition: background 0.25s var(--ease), box-shadow 0.25s var(--ease), transform 0.25s var(--ease);
   letter-spacing: 0.5px;
   outline: none;
   font-family: inherit;
@@ -643,6 +635,7 @@ const $toggleSound  = document.getElementById('toggleSound');
 const $toggleNotify = document.getElementById('toggleNotify');
 const $orbWork    = document.getElementById('orbWork');
 const $orbBreak   = document.getElementById('orbBreak');
+const $orbPause   = document.getElementById('orbPause');
 
 // ---- Constants ----
 const RING_RADIUS = 118;
@@ -651,6 +644,10 @@ const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
 // ---- State ----
 const STATE = { IDLE: 'idle', WORKING: 'working', PAUSED: 'paused', BREAK: 'break', BREAK_PAUSED: 'break_paused' };
 let currentState = STATE.IDLE;
+
+// ---- State helpers ----
+const isBreakState   = () => currentState === STATE.BREAK || currentState === STATE.BREAK_PAUSED;
+const isRunningState = () => currentState === STATE.WORKING || currentState === STATE.BREAK;
 
 // ---- Settings (loaded from localStorage) ----
 let settings = {
@@ -706,20 +703,23 @@ function loadSettings() {
 // ============================================================
 function updateAmbient() {
   const fraction = totalSeconds > 0 ? 1 - (remainingSeconds / totalSeconds) : 0;
-  const isBreak = currentState === STATE.BREAK || currentState === STATE.BREAK_PAUSED;
-  const isRunning = currentState === STATE.WORKING || currentState === STATE.BREAK;
+  const isBreak = isBreakState();
+  const isRunning = isRunningState();
 
   if (isRunning) {
     if (isBreak) {
       $orbBreak.style.opacity = String(0.06 + fraction * 0.10);
       $orbWork.style.opacity = '0.04';
+      $orbPause.style.opacity = '0.04';
     } else {
       $orbWork.style.opacity = String(0.06 + fraction * 0.10);
       $orbBreak.style.opacity = '0.04';
+      $orbPause.style.opacity = '0.04';
     }
   } else {
     $orbWork.style.opacity = '0.06';
     $orbBreak.style.opacity = '0.06';
+    $orbPause.style.opacity = '0.06';
   }
 }
 
@@ -787,23 +787,20 @@ function renderProgress() {
 }
 
 function renderPhase() {
-  const isBreak = currentState === STATE.BREAK || currentState === STATE.BREAK_PAUSED;
+  const isBreak = isBreakState();
 
   if (isBreak) {
     $phaseLabel.textContent = '休息时间';
     $ringProgress.classList.add('is-break');
     $ringProgress.classList.remove('is-finished');
-  } else if (currentState === STATE.WORKING || currentState === STATE.PAUSED) {
-    $phaseLabel.textContent = '专注中';
-    $ringProgress.classList.remove('is-break', 'is-finished');
   } else {
-    $phaseLabel.textContent = '准备开始';
+    $phaseLabel.textContent = (currentState === STATE.WORKING || currentState === STATE.PAUSED) ? '专注中' : '准备开始';
     $ringProgress.classList.remove('is-break', 'is-finished');
   }
 }
 
 function renderButtons() {
-  const isRunning = currentState === STATE.WORKING || currentState === STATE.BREAK;
+  const isRunning = isRunningState();
 
   if (isRunning) {
     $btnStart.style.display = 'none';
@@ -866,6 +863,11 @@ function startTimer() {
   timerInterval = setInterval(tick, 1000);
 }
 
+function flashRing() {
+  $ringProgress.classList.add('is-finished');
+  setTimeout(() => $ringProgress.classList.remove('is-finished'), 3000);
+}
+
 function handleTimerEnd() {
   stopTimer();
 
@@ -879,8 +881,7 @@ function handleTimerEnd() {
     currentState = STATE.BREAK;
     totalSeconds = settings.breakMinutes * 60;
     remainingSeconds = totalSeconds;
-    $ringProgress.classList.add('is-finished');
-    setTimeout(() => $ringProgress.classList.remove('is-finished'), 3000);
+    flashRing();
     renderAll();
     startTimer();
 
@@ -891,8 +892,7 @@ function handleTimerEnd() {
     currentState = STATE.IDLE;
     totalSeconds = settings.workMinutes * 60;
     remainingSeconds = totalSeconds;
-    $ringProgress.classList.add('is-finished');
-    setTimeout(() => $ringProgress.classList.remove('is-finished'), 3000);
+    flashRing();
     renderAll();
   }
 }
@@ -940,8 +940,7 @@ function actionReset() {
 }
 
 function actionToggle() {
-  const running = currentState === STATE.WORKING || currentState === STATE.BREAK;
-  if (running) {
+  if (isRunningState()) {
     actionPause();
   } else {
     actionStart();
@@ -951,7 +950,7 @@ function actionToggle() {
 // ============================================================
 // Settings UI
 // ============================================================
-function syncUIToSettings() {
+function applySettingsToUI() {
   $inputWork.value = settings.workMinutes;
   $inputBreak.value = settings.breakMinutes;
   $sessionCount.textContent = settings.sessionCount;
@@ -975,7 +974,7 @@ function applySettingsFromUI() {
     remainingSeconds = totalSeconds;
   }
 
-  syncUIToSettings();
+  applySettingsToUI();
   renderAll();
 }
 
@@ -995,21 +994,19 @@ $settingsToggle.addEventListener('click', () => {
 
 $inputWork.addEventListener('change', applySettingsFromUI);
 $inputBreak.addEventListener('change', applySettingsFromUI);
-$inputWork.addEventListener('blur', applySettingsFromUI);
-$inputBreak.addEventListener('blur', applySettingsFromUI);
 
 function setupToggle(el, settingKey) {
   el.addEventListener('click', () => {
     settings[settingKey] = !settings[settingKey];
     saveSettings();
-    syncUIToSettings();
+    applySettingsToUI();
   });
   el.addEventListener('keydown', (e) => {
     if (e.key === ' ' || e.key === 'Enter') {
       e.preventDefault();
       settings[settingKey] = !settings[settingKey];
       saveSettings();
-      syncUIToSettings();
+      applySettingsToUI();
     }
   });
 }
@@ -1033,7 +1030,7 @@ function init() {
   $ringProgress.setAttribute('stroke-dasharray', RING_CIRCUMFERENCE.toFixed(2));
 
   loadSettings();
-  syncUIToSettings();
+  applySettingsToUI();
   currentState = STATE.IDLE;
   totalSeconds = settings.workMinutes * 60;
   remainingSeconds = totalSeconds;
